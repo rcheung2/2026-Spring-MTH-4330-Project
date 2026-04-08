@@ -29,7 +29,7 @@ Relevant outputs:
 - Total Other Pay: Includes any additional compensation other than gross salary and overtime pay, such as retroactive pay increases, bonus pay, settlement amounts, meal allowance, etc.
 
 # Notes
-Only the prorated annual data set will uploaded to this repository. The others exceed the 50MB file size limit.
+We were only able to upload the Prorated Annual dataset to this repository because the others exceed the 50MB file size limit.
 
 Per Annum - 708 MB
 
