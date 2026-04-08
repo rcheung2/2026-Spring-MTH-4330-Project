@@ -39,4 +39,4 @@ Per Hour - 189 MB
 
 The prorated annual data set should be enough for a proof of concept to play with, but those who want to run the code on the dataset themselves are encouraged to go to
 https://data.cityofnewyork.us/City-Government/Citywide-Payroll-Data-Fiscal-Year-/k397-673e/about_data
-to download the entire dataset. It will also update over time, so the version on this repository will eventually become outdated.
+to download the larger data tables, or even the entire dataset. It will also update over time, so the version on this repository will eventually become outdated.
