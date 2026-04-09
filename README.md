@@ -31,11 +31,15 @@ Relevant outputs:
 # Notes
 We were only able to upload the Prorated Annual dataset to this repository because the others exceed the 50MB file size limit.
 
-Per Annum - 708 MB
+Here is a list of each one:
 
-Per Day - 262 MB
+Prorated Annual - 5.27 MB, with 29,466 rows
 
-Per Hour - 189 MB
+Per Annum - 708 MB, with 4,060,360 rows
+
+Per Day - 262 MB, with 1,549,827 rows
+
+Per Hour - 189 MB, with 1,136,177 rows
 
 The prorated annual data set is for a proof of concept, but those who want to run the code on the dataset themselves are encouraged to go to
 https://data.cityofnewyork.us/City-Government/Citywide-Payroll-Data-Fiscal-Year-/k397-673e/about_data
