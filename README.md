@@ -29,7 +29,8 @@ Relevant outputs:
 - Total Other Pay: Includes any additional compensation other than gross salary and overtime pay, such as retroactive pay increases, bonus pay, settlement amounts, meal allowance, etc.
 
 # Notes
-We were only able to upload the Prorated Annual dataset to this repository because the others exceed the 50MB file size limit.
+
+Our dataset is split by pay basis. We were only able to upload the Prorated Annual subset to this repository because the others exceed the 50MB file size limit.
 
 Here is a list of each one:
 
@@ -41,6 +42,12 @@ Per Day - 262 MB, with 1,549,827 rows
 
 Per Hour - 189 MB, with 1,136,177 rows
 
-The prorated annual data set is for a proof of concept, but those who want to run the code on the dataset themselves are encouraged to go to
+For our project, we chose to focus on the Prorated Annual dataset to narrow the scope of our project. We believe that this is sufficient because 29,466 is still enough data points to fit a model and find meaningful patterns in the data.
+
+There are a few benefits:
+- We will not need to split our focus between multiple different data tables and learn the subtleties of different pay bases. We can ignore the effect of pay basis altogether, since they are all the same.
+- Even as the dataset gets updated, our results will still be replicable because the csv file we used can be downloaded here.
+
+Those who want to extend this project over to 
 https://data.cityofnewyork.us/City-Government/Citywide-Payroll-Data-Fiscal-Year-/k397-673e/about_data
 to download the larger data tables, or even the entire dataset. It is also actively updated annually, so the version on this repository will eventually become outdated.
