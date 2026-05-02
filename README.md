@@ -46,8 +46,8 @@ For our project, we chose to focus on the Prorated Annual dataset to narrow the 
 
 There are a few benefits:
 - We will not need to split our focus between multiple different data tables and learn the subtleties of different pay bases. We can ignore the effect of pay basis altogether, since they are all the same.
-- Even as the dataset gets updated, our results will still be replicable because the csv file we used can be downloaded here.
+- Our results are easier to replicate because the csv file we used can be downloaded here.
 
-Those who want to extend this project over to 
+Those who want to extend this project can visit
 https://data.cityofnewyork.us/City-Government/Citywide-Payroll-Data-Fiscal-Year-/k397-673e/about_data
 to download the larger data tables, or even the entire dataset. It is also actively updated annually, so the version on this repository will eventually become outdated.
