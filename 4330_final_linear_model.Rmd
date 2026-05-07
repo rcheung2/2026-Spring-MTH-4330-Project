@@ -1,0 +1,253 @@
+---
+title: "MTH 4330 Linear Model"
+subtitle: "Linear Model for Group Project"
+author: "Raymond Cheung"
+date: "2026-05-07"
+output: pdf_document
+header-includes:
+# Add any LaTeX packages you want here -----------------------
+- \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{graphicx}
+---
+
+
+
+<!-- Keep this block  -->
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+# Add any R packages you want here -----------------------
+library(rstudioapi)
+
+library(dplyr) #added
+
+library(xtable) #added to export latex tables
+
+# Do not touch below this line ---------------------------
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  paste0("\n \\", "footnotesize","\n\n", x, "\n\n \\normalsize")
+})
+```
+
+```{r install_libraries, echo = TRUE}
+#install the library dplyr
+#source: https://stackoverflow.com/questions/54621706/error-in-librarydplyr-there-is-no-package-called-dplyr
+
+#comment this out if you already installed it
+#install.packages("dplyr")
+
+# something similar for installing xtable
+#install.packages("xtable")
+
+```
+
+```{r linear_regression_analysis, echo = TRUE}
+
+# Note: the dev set was not used for the linear model. It was used with the random forest model mainly to select hyperparameters. We keep the same train/dev/test split for better comparability.
+
+# this entire thing is taken from Random_forest.R from the GitHub. Slight modification: centering fiscal year
+
+library(data.table)
+library(ranger)
+
+payroll <- data.table::fread(
+  "prorated_annual_Citywide_Payroll_Data_(Fiscal_Year)_20260227.csv",
+  select = c(
+    "Fiscal Year",
+    "Regular Gross Paid",
+    "Total OT Paid",
+    "Base Salary",
+    "Regular Hours",
+    "OT Hours",
+    "Pay Basis"
+  )
+)
+
+payroll <- payroll[toupper(trimws(`Pay Basis`)) == "PRORATED ANNUAL"]
+
+payroll$`Regular Gross Paid` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`Regular Gross Paid`)))
+payroll$`Total OT Paid` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`Total OT Paid`)))
+payroll$`Total OT Paid`[is.na(payroll$`Total OT Paid`)] <- 0
+
+payroll$Total_Paid <- payroll$`Regular Gross Paid` + payroll$`Total OT Paid`
+
+payroll$`Fiscal Year` <- as.numeric(as.character(payroll$`Fiscal Year`)) - 2014 # centered at 2014 = 0
+payroll$`Regular Hours` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`Regular Hours`)))
+payroll$`Base Salary` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`Base Salary`)))
+payroll$`OT Hours` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`OT Hours`)))
+
+payroll <- payroll[, c(
+  "Fiscal Year",
+  "Regular Hours",
+  "Base Salary",
+  "OT Hours",
+  "Total_Paid"
+)]
+
+payroll <- na.omit(payroll)
+
+names(payroll) <- c("Fiscal_Year", "Regular_Hours", "Base_Salary", "OT_Hours", "Total_Paid")
+
+set.seed(42)
+
+n <- nrow(payroll)
+
+# 70/15/15 split
+train_idx <- sample(seq_len(n), size = floor(0.70 * n))
+remaining <- setdiff(seq_len(n), train_idx)
+dev_idx <- sample(remaining, size = floor(0.15 * n))
+test_idx <- setdiff(remaining, dev_idx)
+
+train <- payroll[train_idx, ]
+dev   <- payroll[dev_idx, ]
+test  <- payroll[test_idx, ]
+
+# --- end of data cleaning code from random forest ---
+
+# --- CoPilot-assisted linear model and metrics (a lot of variable names needed to change) ---
+
+#fits a linear model to the training data
+model <- lm(Total_Paid ~ 
+              Fiscal_Year +
+              Regular_Hours + 
+              Base_Salary + 
+              OT_Hours, data = train)
+
+# test set predictions
+predictions <- predict(model, newdata = test)
+
+# test set residuals
+res <- test$Total_Paid - predictions
+
+MAE <- mean(abs(res)) # uses this for MAE
+RMSE <- sqrt(mean(res^2)) # also usable for root mean squared error
+
+mse_value <- mean((test$Total_Paid - predictions)^2)
+
+r2 <- 1 - sum(res^2) / sum((test$Total_Paid - mean(test$Total_Paid))^2) # standard R^2 (to match random forest)
+
+#summarize model
+summary(model)
+
+# print the metrics to paste into the report
+
+print("MAE")
+print(MAE)
+print("RMSE")
+print(RMSE)
+print("R^2")
+print(r2)
+
+# --- CoPilot-assisted transition block: align csv_data with model and add predictions ---
+
+data_file_path <- "prorated_annual_Citywide_Payroll_Data_(Fiscal_Year)_20260227.csv"
+
+#import the data from the csv file
+csv_data <- read.csv(data_file_path, header = TRUE, sep = ",")
+
+# keep only prorated annual rows
+csv_data <- csv_data[toupper(trimws(csv_data$Pay.Basis)) == "PRORATED ANNUAL", ]
+
+# clean numeric fields to match model expectations
+csv_data$Regular.Gross.Paid <- as.numeric(gsub("[^0-9.-]", "", csv_data$Regular.Gross.Paid))
+csv_data$Total.OT.Paid      <- as.numeric(gsub("[^0-9.-]", "", csv_data$Total.OT.Paid))
+csv_data$Total.OT.Paid[is.na(csv_data$Total.OT.Paid)] <- 0
+
+csv_data$Total.Paid <- csv_data$Regular.Gross.Paid + csv_data$Total.OT.Paid
+
+csv_data$Fiscal.Year   <- as.numeric(as.character(csv_data$Fiscal.Year)) - 2014
+csv_data$Regular.Hours <- as.numeric(gsub("[^0-9.-]", "", csv_data$Regular.Hours))
+csv_data$Base.Salary   <- as.numeric(gsub("[^0-9.-]", "", csv_data$Base.Salary))
+csv_data$OT.Hours      <- as.numeric(gsub("[^0-9.-]", "", csv_data$OT.Hours))
+
+# align names with the model
+csv_data <- csv_data %>%
+  rename(
+    Fiscal_Year    = Fiscal.Year,
+    Regular_Hours  = Regular.Hours,
+    Base_Salary    = Base.Salary,
+    OT_Hours       = OT.Hours,
+    Total_Paid     = Total.Paid
+  )
+
+# add linear-model predictions
+csv_data$predicted <- predict(model, newdata = csv_data)
+
+# --- department mean and error analysis taken from old thing ---
+
+# actual department means
+actual_means <- csv_data %>%
+  group_by(Agency.Name) %>%
+  summarise(actual_mean = mean(Total_Paid, na.rm = TRUE))
+
+# predicted department means
+predicted_means <- csv_data %>%
+  group_by(Agency.Name) %>%
+  summarise(predicted_mean = mean(predicted, na.rm = TRUE))
+
+# combine
+plot_df <- left_join(actual_means, predicted_means, by = "Agency.Name")
+
+# export scatter plot as pdf for latex
+pdf("[plot] linreg_department_means_1.pdf", width = 5, height = 4)
+
+#plotting the means
+plot(plot_df$actual_mean,
+     plot_df$predicted_mean,
+     xlab = "Actual Means",
+     ylab = "Predicted Means (Linear Model)",
+     main = "Prorated Annual Department Means (Lin. Reg.)",
+     pch = 19,
+     col = "blue")
+
+# add 45-degree line
+abline(0, 1, lty = 2, col = "red")
+
+#close the export
+dev.off()
+
+# --- pdf file 2 (employee scatter plot) ---
+
+# actual department means
+actual <- csv_data$Total_Paid
+
+# predicted department means
+predicted <- predict(model, newdata = csv_data)
+
+# export scatter plot as pdf for latex
+pdf("[plot] linreg_employee_plot_1.pdf", width = 5, height = 4)
+
+#plotting the points
+plot(actual, predicted,
+     xlab = "Actual Total Paid (per employee)",
+     ylab = "Predicted Total Paid (Linear Model)",
+     main = "Prorated Annual Total Paid (Lin. Reg.)",
+     pch = 19,
+     cex = 0.2,
+     col = "blue")
+
+# add 45-degree line
+abline(0, 1, lty = 2, col = "red")
+
+#close the export
+dev.off()
+
+# --- more analysis ---
+
+# find the top 15 earning departments
+
+plot_df %>%
+  mutate(residual = actual_mean - predicted_mean) %>%
+  arrange(desc(abs(residual))) %>%
+  slice(1:15) %>%
+  select(Agency.Name, actual_mean, predicted_mean, residual)
+
+library(xtable)
+
+xtable(summary(model))
+
+```

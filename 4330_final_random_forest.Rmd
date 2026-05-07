@@ -1,0 +1,129 @@
+---
+title: "MTH 4330 project draft"
+subtitle: "Test Code for Group Project"
+author: "Raymond Cheung"
+date: "2026-03-31"
+output: pdf_document
+header-includes:
+# Add any LaTeX packages you want here -----------------------
+- \usepackage{amsmath}
+- \usepackage{amssymb}
+- \usepackage{graphicx}
+---
+
+
+
+<!-- Keep this block  -->
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+# Add any R packages you want here -----------------------
+library(rstudioapi)
+
+library(dplyr) #added
+
+library(xtable) #added to export latex tables
+
+# Do not touch below this line ---------------------------
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  paste0("\n \\", "footnotesize","\n\n", x, "\n\n \\normalsize")
+})
+```
+
+```{r random_forest, echo = TRUE}
+
+# this entire thing is taken from Random_forest.R from the GitHub. Slight modification: centering fiscal year
+
+library(data.table)
+library(ranger)
+
+payroll <- data.table::fread(
+  "prorated_annual_Citywide_Payroll_Data_(Fiscal_Year)_20260227.csv",
+  select = c(
+    "Fiscal Year",
+    "Regular Gross Paid",
+    "Total OT Paid",
+    "Base Salary",
+    "Regular Hours",
+    "OT Hours",
+    "Pay Basis"
+  )
+)
+
+payroll <- payroll[toupper(trimws(`Pay Basis`)) == "PRORATED ANNUAL"]
+
+payroll$`Regular Gross Paid` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`Regular Gross Paid`)))
+payroll$`Total OT Paid` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`Total OT Paid`)))
+payroll$`Total OT Paid`[is.na(payroll$`Total OT Paid`)] <- 0
+
+payroll$Total_Paid <- payroll$`Regular Gross Paid` + payroll$`Total OT Paid`
+
+payroll$`Fiscal Year` <- as.numeric(as.character(payroll$`Fiscal Year`)) - 2014 # centered at 2014 = 0
+payroll$`Regular Hours` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`Regular Hours`)))
+payroll$`Base Salary` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`Base Salary`)))
+payroll$`OT Hours` <- as.numeric(gsub("[^0-9.-]", "", as.character(payroll$`OT Hours`)))
+
+payroll <- payroll[, c(
+  "Fiscal Year",
+  "Regular Hours",
+  "Base Salary",
+  "OT Hours",
+  "Total_Paid"
+)]
+
+payroll <- na.omit(payroll)
+
+names(payroll) <- c("Fiscal_Year", "Regular_Hours", "Base_Salary", "OT_Hours", "Total_Paid")
+
+set.seed(42)
+
+n <- nrow(payroll)
+
+# 70/15/15 split
+train_idx <- sample(seq_len(n), size = floor(0.70 * n))
+remaining <- setdiff(seq_len(n), train_idx)
+dev_idx <- sample(remaining, size = floor(0.15 * n))
+test_idx <- setdiff(remaining, dev_idx)
+
+train <- payroll[train_idx, ]
+dev   <- payroll[dev_idx, ]
+test  <- payroll[test_idx, ]
+
+# random forest model (copied from the GitHub)
+
+rf_model <- ranger::ranger(
+  Total_Paid ~ Fiscal_Year + Regular_Hours + Base_Salary + OT_Hours,
+  data = train,
+  num.trees = 200,
+  max.depth = 12,
+  min.node.size = 5,
+  seed = 42
+)
+
+# dev set R^2
+
+dev_pred <- predict(rf_model, data = dev)$predictions
+
+dev_r2 <- 1 - sum((dev$Total_Paid - dev_pred)^2) /
+  sum((dev$Total_Paid - mean(dev$Total_Paid))^2)
+
+cat("development R^2:", round(dev_r2, 6), "\n")
+
+# main model metrics
+
+pred_rf <- predict(rf_model, data = test)$predictions
+
+mae_rf <- mean(abs(test$Total_Paid - pred_rf))
+rmse_rf <- sqrt(mean((test$Total_Paid - pred_rf)^2))
+
+r2_rf <- 1 - sum((test$Total_Paid - pred_rf)^2) /
+  sum((test$Total_Paid - mean(test$Total_Paid))^2)
+
+cat("MAE:", round(mae_rf, 3), "\n")
+cat("RMSE:", round(rmse_rf, 3), "\n")
+cat("R^2:", round(r2_rf, 6), "\n")
+
+```
