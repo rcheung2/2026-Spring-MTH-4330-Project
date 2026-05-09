@@ -126,4 +126,17 @@ cat("MAE:", round(mae_rf, 3), "\n")
 cat("RMSE:", round(rmse_rf, 3), "\n")
 cat("R^2:", round(r2_rf, 6), "\n")
 
+# Random Forest actual vs predicted plot
+
+plot(
+  test$Total_Paid,
+  pred_rf,
+  xlab = "Actual Total Paid",
+  ylab = "Predicted Total Paid (Random Forest)",
+  main = "Random Forest: Actual vs Predicted Total Paid",
+  pch = 16,
+  col = "blue"
+)
+
+abline(0, 1, col = "red", lty = 2, lwd = 2)
 ```
